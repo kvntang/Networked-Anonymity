@@ -1,3 +1,5 @@
+//use ESP32 Wrover Module
+
 #include <WebServer.h>
 #include <WiFi.h>
 #include <esp32cam.h>
@@ -6,15 +8,18 @@
 const char* ssid = "xfinitywifi_HUH_Res";
 const char* password = "huhwifi9434";
 
+using namespace websockets;
+
 //Board stuff
 const int ledPin = 5;  // Replace with your LED pin
 
 //DUAL PORTS
 WebServer server(80); //1. camera streaming
-WebSocketsServer wsServer(81); // 2. WebSocket server
+WebsocketsServer wsServer;
+WebsocketsClient client; // Define the client globally
 
 static auto loRes = esp32cam::Resolution::find(320, 240);
-static auto hiRes = esp32cam::Resolution::find(800, 600)
+static auto hiRes = esp32cam::Resolution::find(800, 600);
 
 //FUNCTIONS///////////////////////////////////////////////////////////////////////////////
 void serveJpg()
@@ -49,23 +54,6 @@ void handleJpgHi()
     Serial.println("SET-HI-RES FAIL");
   }
   serveJpg();
-}
-
-void onWebSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
-  if (type == WStype_TEXT || type == WStype_BIN) {
-      // Assuming payload is either "0" or "1"
-      if (length == 1) {
-          if (payload[0] == '0') {
-              digitalWrite(ledPin, LOW);  // Turn LED off
-              Serial.println("LED turned off");
-              wsServer.sendTXT(num, "LED turned off");
-          } else if (payload[0] == '1') {
-              digitalWrite(ledPin, HIGH); // Turn LED on
-              Serial.println("LED turned on");
-              wsServer.sendTXT(num, "LED turned on");
-          }
-      }
-  }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -113,12 +101,25 @@ void setup() {
   server.on("/cam-hi.jpg", handleJpgHi);
   server.begin();
 
-  // WebSocket server setup
-  wsServer.begin();
-  wsServer.onEvent(onWebSocketEvent);
+  // Start WebSocket server
+  wsServer.listen(81);   // Listen on port 81
 }
 
 void loop() {
+  //1. HTTP server
   server.handleClient();
-  wsServer.loop();
+
+  //2. WebSocket server
+  if (!client.available()) {
+        client = wsServer.accept();
+    }
+  if (client.available()) {
+      WebsocketsMessage msg = client.readBlocking();
+      Serial.print("Got Message: ");
+      Serial.println(msg.data());
+      client.send("Echo: " + msg.data());
+  }
+
+  delay(500); // Optional: Add a small delay to reduce CPU usage
+
 }
