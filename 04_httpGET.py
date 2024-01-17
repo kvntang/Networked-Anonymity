@@ -2,12 +2,10 @@ import cv2
 import urllib.request
 import numpy as np
 import threading
-import websocket
-import time
 
 # Server configuration
 servers = {
-    "server1": {"stream_url": "http://100.83.156.202:80/cam-hi.jpg", "ws_addr": "ws://192.168.1.101:81"},
+    "server1": {"ip": "http://100.83.156.202"},
     # Add more servers as needed
 }
 
@@ -19,32 +17,39 @@ frames = {server_name: None for server_name in servers}
 def fetch_frame(server_name):
     while True:
         try:
-            img_resp = urllib.request.urlopen(servers[server_name]["stream_url"])
+            url = f"{servers[server_name]['ip']}/cam-hi.jpg"
+            img_resp = urllib.request.urlopen(url) # GET request
             imgnp = np.array(bytearray(img_resp.read()), dtype=np.uint8)
             frames[server_name] = cv2.flip(cv2.imdecode(imgnp, -1), 0)
         except Exception as e:
             print(f"Error fetching frame from {server_name}: {e}")
 
-# Function to handle WebSocket communication
-
+# Function to send value and receive confirmation
+def send_val(server_name):
+    while True:
+        try:
+            slider_value = cv2.getTrackbarPos(server_name, server_name)
+            url = f"{servers[server_name]['ip']}/setNumber?value={slider_value}"
+            with urllib.request.urlopen(url) as response:  # Send GET request and retrieve confirmation
+                if response.status == 200:
+                    response_content = response.read().decode('utf-8')
+                    print("Response from server:", response_content)
+                else:
+                    print("Failed to fetch response. Status code:", response.status)
+        except Exception as e:
+            print(f"Error while sending request from {server_name}: {e}")
 
 ##############################################################################################
 # Create threads for each server
 for server_name in servers:
-    thread = threading.Thread(target=fetch_frame, args=(server_name,))
-    thread.start()
-    # thread_ws = threading.Thread(target=websocket_thread_func, args=(server_name,))
-    # thread_ws.start()
-
     threading.Thread(target=fetch_frame, args=(server_name,)).start()
-    # threading.Thread(target=websocket_thread_func, args=(server_name,)).start()
+    threading.Thread(target=send_val, args=(server_name,)).start()
 
     # Create OpenCV windows and sliders
     cv2.namedWindow(server_name)
-    # cv2.createTrackbar(f"LED Control {server_name}", server_name, 0, 1, lambda x: None)
+    cv2.createTrackbar(server_name, server_name, 0, 8, lambda x: None)
 
-
-##############################################################################################
+# MAIN LOOP #
 while True:
     for server_name in servers:
         if frames[server_name] is not None:

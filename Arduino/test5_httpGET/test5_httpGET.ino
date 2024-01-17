@@ -3,26 +3,22 @@
 #include <WebServer.h>
 #include <WiFi.h>
 #include <esp32cam.h>
-#include <ArduinoWebsockets.h>
 
 const char* ssid = "xfinitywifi_HUH_Res";
 const char* password = "huhwifi9434";
 
-using namespace websockets;
+using namespace esp32cam;
 
-//Board stuff
-const int ledPin = 5;  // Replace with your LED pin
 
-//DUAL PORTS
-WebServer server(80); //1. camera streaming
-WebsocketsServer wsServer;
-WebsocketsClient client; // Define the client globally
+
+WebServer server;
 
 static auto loRes = esp32cam::Resolution::find(320, 240);
 static auto hiRes = esp32cam::Resolution::find(800, 600);
 
-const long UPDATE_INTERVAL = 1000; // Update interval in milliseconds
-unsigned long last_update_sent = 0;
+//Outputs
+const int ledPin = 5;  // Replace with your LED pin
+int globalNumber = 0; // Global variable to store the number
 
 //FUNCTIONS///////////////////////////////////////////////////////////////////////////////
 void serveJpg()
@@ -59,6 +55,16 @@ void handleJpgHi()
   serveJpg();
 }
 
+void handleSetNumber() {
+  if (server.hasArg("value")) {
+    globalNumber = server.arg("value").toInt();
+    Serial.println("Received number: " + String(globalNumber));
+    server.send(200, "text/plain", "Number set to: " + String(globalNumber));
+  } else {
+    server.send(400, "text/plain", "Bad Request");
+  }
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////
 void setup() {
   Serial.begin(115200);
@@ -93,44 +99,20 @@ void setup() {
   // Print IP address for HTTP and WebSocket server
   Serial.print("Camera Stream: http://");
   Serial.print(WiFi.localIP());
-  Serial.println(":80");
+
   
-  Serial.print("WebSocket Server: ws://");
-  Serial.print(WiFi.localIP());
-  Serial.println(":81");
 
   // HTTP server routes
   server.on("/cam-lo.jpg", handleJpgLo);
   server.on("/cam-hi.jpg", handleJpgHi);
+  server.on("/setNumber", handleSetNumber);
   server.begin();
 
-  // Start WebSocket server
-  wsServer.listen(81);   // Listen on port 81
 }
 
 void loop() {
-  //1. HTTP server
   server.handleClient();
 
-    // Check and accept new WebSocket client
-  if (!client.available()) {
-    client = wsServer.accept();
-  }
-
-  // Non-blocking check for new WebSocket data
-//  if (client.poll()) { // Check if there's data available
-//    WebsocketsMessage msg = client.readBlocking(); // Blocking read
-//    Serial.print("Got Message: ");
-//    Serial.println(msg.data());
-//    client.send("Echo: " + msg.data());
-    
-  if (client.available()) {
-      WebsocketsMessage msg = client.readBlocking(); // Blocking read
-      Serial.print("Got Message: ");
-      Serial.println(msg.data());
-      client.send("Echo: " + msg.data());
-  }
-  
-
+ 
   delay(100);
 }
