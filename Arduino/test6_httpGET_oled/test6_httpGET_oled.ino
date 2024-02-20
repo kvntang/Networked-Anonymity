@@ -12,11 +12,12 @@ int globalNumber = 0;
 //////////////////////////////////////////////////////////////////////////////////////////
 void setup() {
   Serial.begin(115200);
-  setupDisplay("Hello Word");
+  setupDisplay("system initiating");
   setupCameraServer(ssid, password, mac_address, ip_address);//returns mac and ip
   displayStuff(mac_address, ip_address, globalNumber);//display mac and ip
 }
 
 void loop() {
   loopCameraWebServer();
+  displayStuff(mac_address, ip_address, globalNumber);//display mac and ip
 }

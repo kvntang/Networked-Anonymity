@@ -21,7 +21,7 @@ void setup() {
   
   display.clearDisplay();
   display.setTextSize(1);
-  display.setTextColor(WHITE);
+  display.setTextColor(SSD1306_WHITE);
   display.setCursor(0, 0);
   display.print("Hello World!");;
   display.display();

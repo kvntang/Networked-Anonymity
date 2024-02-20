@@ -30,7 +30,18 @@ void setupDisplay(String text){
   display.clearDisplay();
   display.setTextSize(1);
   display.setTextColor(WHITE);
-  display.setCursor(0, 0);
+  
+  
+   // Calculate the width and height of the text
+  int16_t x1, y1;
+  uint16_t textWidth, textHeight;
+  display.getTextBounds(text, 0, 0, &x1, &y1, &textWidth, &textHeight);
+  // Calculate the starting position for the text to be centered
+  int16_t xStart = (display.width() - textWidth) / 2;
+  int16_t yStart = (display.height() - textHeight) / 2;
+  display.setCursor(xStart, yStart);
+
+
   display.print(text);;
   display.display();
 }
@@ -75,44 +86,24 @@ void setupCameraServer(const String& ssid, const String& password, String& mac_a
 
 void displayStuff(String mac_address, IPAddress ip_address, int num){
   display.clearDisplay();
-  display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
-  display.setCursor(0, 0);
-    display.print("MAC: "); display.println(mac_address);
-  display.print("IP: "); display.println(ip_address);
+
+  display.setTextSize(2);
+  int16_t x1, y1;
+  uint16_t w, h;
+  String text = "CAM 2";
+  display.getTextBounds(text, 0, 0, &x1, &y1, &w, &h); // Calculate the width and height of the text
+  // Calculate the starting x position to center the text
+  int16_t xStart = (display.width() - w) / 2;
+  display.setCursor(xStart, 0);
+  display.println(text);
+
+  display.setTextSize(1);
+  display.setCursor(0, h + 2); // Start a little below the "CAM 2" text
+  display.print("MAC:"); display.println(mac_address);
+  display.print("IP:"); display.println(ip_address);
   display.print("Receiving: "); display.println(num);
-  display.display();
-}
 
-void loopCameraWebServer(){
-  server.handleClient();
-  delay(10);
-}
-
-
-void updateDisplay() {
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setCursor(0, 0);
-  display.setTextColor(SSD1306_WHITE);
-
-  // Display Title
-  display.println(F("ESP32 CAM Module"));
-
-  // Display WiFi status
-  if (WiFi.status() == WL_CONNECTED) {
-    display.println("WiFi: Connected");
-  } else {
-    display.println("WiFi: Not Connected");
-  }
-
-  // Display MAC and IP Address
-  display.println("MAC: " + WiFi.macAddress());
-  if (WiFi.status() == WL_CONNECTED) {
-    display.println("IP: " + WiFi.localIP().toString());
-  } else {
-    display.println("IP: Not Available");
-  }
 
   // Calculate hours, minutes, and seconds from millis
   unsigned long currentMillis = millis();
@@ -136,8 +127,64 @@ void updateDisplay() {
   if (seconds < 10) display.print('0');
   display.println(seconds);
 
+  
   display.display();
 }
+
+void loopCameraWebServer(){
+  server.handleClient();
+  delay(10);
+}
+
+//
+//void updateDisplay() {
+//  display.clearDisplay();
+//  display.setTextSize(1);
+//  display.setCursor(0, 0);
+//  display.setTextColor(SSD1306_WHITE);
+//
+//  // Display Title
+//  display.println(F("ESP32 CAM Module"));
+//
+//  // Display WiFi status
+//  if (WiFi.status() == WL_CONNECTED) {
+//    display.println("WiFi: Connected");
+//  } else {
+//    display.println("WiFi: Not Connected");
+//  }
+//
+//  // Display MAC and IP Address
+//  display.println("MAC: " + WiFi.macAddress());
+//  if (WiFi.status() == WL_CONNECTED) {
+//    display.println("IP: " + WiFi.localIP().toString());
+//  } else {
+//    display.println("IP: Not Available");
+//  }
+//
+//  // Calculate hours, minutes, and seconds from millis
+//  unsigned long currentMillis = millis();
+//  unsigned long seconds = currentMillis / 1000;
+//  unsigned long minutes = seconds / 60;
+//  unsigned long hours = minutes / 60;
+//
+//  // Correct for days, if necessary
+//  seconds %= 60; // Seconds remaining after converting to minutes
+//  minutes %= 60; // Minutes remaining after converting to hours
+//
+//  // Display the current time in HH:MM:SS format
+//  display.setCursor(0, 56); // Adjust position as needed
+//  display.print("Time: ");
+//  if (hours < 10) display.print('0');
+//  display.print(hours);
+//  display.print(':');
+//  if (minutes < 10) display.print('0');
+//  display.print(minutes);
+//  display.print(':');
+//  if (seconds < 10) display.print('0');
+//  display.println(seconds);
+//
+//  display.display();
+//}
 
 
 //BASIC FUNCTIONS///////////////////////////////////////////////////////////////////////////////
